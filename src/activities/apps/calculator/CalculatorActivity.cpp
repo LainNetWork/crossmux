@@ -14,6 +14,7 @@ constexpr int kColumns = 4;
 constexpr int kRows = 5;
 constexpr int kKeyCount = kColumns * kRows;
 constexpr int kInitialSelection = 9;
+constexpr int kMinimumSectionSpacing = 12;
 
 constexpr std::array<calculator::Key, kKeyCount> kKeys = {
     calculator::Key::Clear,  calculator::Key::ToggleSign, calculator::Key::Percent,   calculator::Key::Divide,
@@ -36,6 +37,7 @@ struct CalculatorLayout {
 
 CalculatorLayout layoutFor(const GfxRenderer& renderer) {
   const auto& metrics = UITheme::getInstance().getMetrics();
+  const int sectionSpacing = std::max(metrics.verticalSpacing, kMinimumSectionSpacing);
   const Rect safe = UITheme::getInstance().getScreenSafeArea(renderer, true, true);
   int viewTop, viewRight, viewBottom, viewLeft;
   renderer.getOrientedViewableTRBL(&viewTop, &viewRight, &viewBottom, &viewLeft);
@@ -52,7 +54,7 @@ CalculatorLayout layoutFor(const GfxRenderer& renderer) {
   const int displayHeight = std::max(112, availableHeight / 4);
   const Rect displayArea{left, displayTop, width, displayHeight};
 
-  const int gridTop = displayArea.y + displayArea.height + metrics.verticalSpacing;
+  const int gridTop = displayArea.y + displayArea.height + sectionSpacing;
   const int gap =
       metrics.optionPopupSelectionRadius > 0 ? std::max(metrics.menuSpacing, metrics.keyboardKeySpacing) : 0;
   const int availableGridHeight = std::max(0, bottom - gridTop);
@@ -215,18 +217,19 @@ void CalculatorActivity::render(RenderLock&&) {
   renderer.clearScreen();
 
   const auto& metrics = UITheme::getInstance().getMetrics();
+  const int sectionSpacing = std::max(metrics.verticalSpacing, kMinimumSectionSpacing);
   const CalculatorLayout layout = layoutFor(renderer);
   GUI.drawHeader(renderer, layout.header, tr(STR_CALCULATOR_TITLE));
 
   const char* expression = state_.expressionText();
   const int expressionWidth = renderer.getTextWidth(UI_12_FONT_ID, expression);
-  const int expressionY = layout.display.y + metrics.verticalSpacing;
+  const int expressionY = layout.display.y + sectionSpacing;
   renderer.drawText(UI_12_FONT_ID, layout.display.x + layout.display.width - expressionWidth, expressionY, expression);
 
   const char* result = state_.hasError() ? tr(STR_CALCULATOR_ERROR) : state_.resultText();
   const int resultWidth = renderer.getTextWidth(NOTOSANS_18_FONT_ID, result, EpdFontFamily::BOLD);
-  const int resultHeight = renderer.getTextHeight(NOTOSANS_18_FONT_ID);
-  const int resultY = layout.display.y + layout.display.height - resultHeight - metrics.verticalSpacing;
+  const int resultLineHeight = renderer.getLineHeight(NOTOSANS_18_FONT_ID);
+  const int resultY = layout.display.y + layout.display.height - resultLineHeight - sectionSpacing;
   renderer.drawText(NOTOSANS_18_FONT_ID, layout.display.x + layout.display.width - resultWidth, resultY, result, true,
                     EpdFontFamily::BOLD);
   renderer.drawLine(layout.display.x, layout.display.y + layout.display.height - 1,
